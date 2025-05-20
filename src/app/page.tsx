@@ -1,103 +1,319 @@
-import Image from "next/image";
+"use client";
+
+import { useState } from "react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
+import { toPng } from 'html-to-image';
+import { useRef } from 'react';
+import { format } from "date-fns";
+import { CalendarIcon } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
+import { Footer } from "@/components/footer";
+
+type Orang = {
+  nama: string;
+  kontribusi: number;
+};
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [dataOrang, setDataOrang] = useState<Orang[]>([]);
+  const [nama, setNama] = useState("");
+  const [namaPembayar, setNamaPembayar] = useState("");
+  const [harga, setHarga] = useState("");
+  const [pengiriman, setPengiriman] = useState("");
+  const [admin, setAdmin] = useState("");
+  const [diskon, setDiskon] = useState("");
+  const [hasil, setHasil] = useState<any[]>([]);
+  const [tanggalPesan, setTanggalPesan] = useState<Date>(new Date());
+  const hasilRef = useRef<HTMLDivElement>(null);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  // Add this function near other utility functions
+  const capitalize = (str: string) => {
+    return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+  };
+
+  // Modify where we add new person to capitalize the name
+  const tambahOrang = () => {
+    if (!nama || !harga) return;
+    const kontribusi = parseInt(harga.replace(/\D/g, ""));
+    if (isNaN(kontribusi)) return;
+
+    setDataOrang([...dataOrang, { nama: capitalize(nama), kontribusi }]);
+    setNama("");
+    setHarga("");
+  };
+
+  // In the results table, modify the name display
+  {hasil.map((item, index) => (
+    <TableRow key={index}>
+      <TableCell>{item.nama}</TableCell>
+      <TableCell className="text-right">{item.bayar}</TableCell>
+    </TableRow>
+  ))}
+
+  const getTotalKontribusi = () => {
+    return dataOrang.reduce((acc, item) => acc + item.kontribusi, 0);
+  };
+
+  const hitungPembayaran = () => {
+    const totalAwal = getTotalKontribusi();
+    const pengirimanInt = parseInt(pengiriman || "0");
+    const adminInt = parseInt(admin || "0");
+    const diskonInt = parseInt(diskon || "0");
+
+    const totalBayar = totalAwal - diskonInt + pengirimanInt + adminInt;
+
+    const hasilBaru = dataOrang.map((orang) => {
+      const proporsi = orang.kontribusi / totalAwal;
+      const bayarSeharusnya = Math.round(proporsi * totalBayar);
+      return {
+        nama: orang.nama,
+        bayar: formatIDR(bayarSeharusnya),
+      };
+    });
+
+    setHasil(hasilBaru);
+  };
+
+  const formatIDR = (angka: number) => {
+    return `Rp${angka.toLocaleString("id-ID")}`;
+  };
+
+  // Add reset function after other functions
+  const resetAll = () => {
+    setDataOrang([]);
+    setNama("");
+    setHarga("");
+    setPengiriman("");
+    setAdmin("");
+    setDiskon("");
+    setHasil([]);
+    setNamaPembayar("");
+    setTanggalPesan(new Date()); // Reset to current date
+  };
+
+  const downloadHasil = async () => {
+    if (hasilRef.current === null) return;
+    
+    const dataUrl = await toPng(hasilRef.current, {
+      quality: 0.95,
+      backgroundColor: 'white'
+    });
+    
+    const formattedDate = format(tanggalPesan, "ddMMyyyy").toUpperCase();
+    const link = document.createElement('a');
+    link.download = `${formattedDate}-pembagian-biaya-makan.png`;
+    link.href = dataUrl;
+    link.click();
+  };
+
+  return (
+    <div className="max-w-3xl mx-auto p-6 space-y-8">
+      <h1 className="text-3xl font-bold text-center">PEMBAGIAN BIAYA MAKAN</h1>
+      <div className="border rounded-xl p-4 space-y-4 shadow-sm">
+          <h2 className="text-lg font-semibold uppercase">pembayar pesanan</h2>
+          <Input
+            placeholder="Nama yang membayar"
+            value={namaPembayar}
+            onChange={(e) => setNamaPembayar(e.target.value)}
+          />
+          <div className="mt-4">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant={"outline"}
+                  className={cn(
+                    "w-full justify-start text-left font-normal",
+                    !tanggalPesan && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {tanggalPesan ? format(tanggalPesan, "PPP") : <span>Pilih tanggal</span>}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={tanggalPesan}
+                  onSelect={(date) => date && setTanggalPesan(date)}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
+      
+      {/* Form Input Orang */}
+      <div className="border rounded-xl p-4 space-y-4 shadow-sm">
+        
+        <h2 className="text-lg font-semibold uppercase">input pemesan</h2>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <Input
+            placeholder="Nama"
+            value={nama}
+            onChange={(e) => setNama(e.target.value)}
           />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
+          <Input
+            placeholder="Harga (mis. 15000)"
+            value={harga}
+            onChange={(e) => setHarga(e.target.value)}
           />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+          <Button onClick={tambahOrang}>Tambah</Button>
+        </div>
+
+        {/* List of people in table format */}
+        {dataOrang.length > 0 && (
+          <div className="mt-4">
+            <h3 className="text-sm font-medium mb-2 uppercase">daftar pemesan</h3>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>No</TableHead>
+                  <TableHead>Nama</TableHead>
+                  <TableHead className="text-right">Kontribusi</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {dataOrang.map((orang, index) => (
+                  <TableRow key={index}>
+                    <TableCell>{index + 1}</TableCell>
+                    <TableCell>{orang.nama}</TableCell>
+                    <TableCell className="text-right">{formatIDR(orang.kontribusi)}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </div>
+
+      {/* Input Detail Biaya */}
+      <div className="border rounded-xl p-4 space-y-4 shadow-sm">
+        <h2 className="text-lg font-semibold uppercase">detail biaya</h2>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between bg-muted p-4 rounded-lg w-full">
+            <span className="text-sm font-medium uppercase">total pesanan</span>
+            <span className="text-lg font-semibold">{formatIDR(getTotalKontribusi())}</span>
+          </div>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <Input
+              placeholder="Biaya Pengiriman"
+              value={pengiriman}
+              onChange={(e) => setPengiriman(e.target.value)}
+            />
+            <Input
+              placeholder="Biaya Admin"
+              value={admin}
+              onChange={(e) => setAdmin(e.target.value)}
+            />
+            <Input
+              placeholder="Diskon"
+              value={diskon}
+              onChange={(e) => setDiskon(e.target.value)}
+            />
+          </div>
+        </div>
+
+        {/* Modify the button section in Detail Biaya */}
+        <div className="flex gap-2">
+          <Button 
+            className="flex-1" 
+            onClick={hitungPembayaran}
+          >
+            Hitung Pembayaran
+          </Button>
+          <Button 
+            variant="destructive" 
+            onClick={resetAll}
+          >
+            Reset
+          </Button>
+        </div>
+      </div>
+
+      {/* Tabel Hasil */}
+      {hasil.length > 0 && (
+        <div ref={hasilRef} className="border rounded-xl p-4 shadow-sm">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-semibold uppercase">hasil pembagian</h2>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={downloadHasil}
+              className="text-xs"
+            >
+              Download
+            </Button>
+          </div>
+          <div className="space-y-4">
+          <div className="flex justify-between items-center text-sm mb-4">
+            <div>
+              {format(tanggalPesan, "PPP")}
+            </div>
+            {namaPembayar && (
+              <div className="font-regular">
+                Pembayaran ke <span className="font-semibold">{capitalize(namaPembayar)}</span>
+              </div>
+            )}
+          </div>
+            <div className="flex items-center justify-between bg-muted p-4 rounded-lg w-full">
+              
+              <div className="w-full space-y-1">
+                <div className="w-full flex justify-between text-sm">
+                  <span>Total Pesanan</span>
+                  <span className="ml-auto">{formatIDR(getTotalKontribusi())}</span>
+                </div>
+                {pengiriman && (
+                  <div className="w-full flex justify-between text-sm">
+                    <span>Biaya Pengiriman</span>
+                    <span className="ml-auto">{formatIDR(parseInt(pengiriman))}</span>
+                  </div>
+                )}
+                {admin && (
+                  <div className="w-full flex justify-between text-sm">
+                    <span>Biaya Admin</span>
+                    <span className="ml-auto">{formatIDR(parseInt(admin))}</span>
+                  </div>
+                )}
+                {diskon && (
+                  <div className="w-full flex justify-between text-sm">
+                    <span>Diskon</span>
+                    <span className="ml-auto">{formatIDR(parseInt(diskon))}</span>
+                  </div>
+                )}
+                <div className="w-full flex justify-between border-t mt-2 pt-2">
+                  <span className="font-medium uppercase">total akhir</span>
+                  <span className="ml-auto text-lg font-semibold">
+                    {formatIDR(getTotalKontribusi() + parseInt(pengiriman || "0") + parseInt(admin || "0") - parseInt(diskon || "0"))}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nama</TableHead>
+                  <TableHead className="text-right">Harus Bayar</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {hasil.map((item, index) => (
+                  <TableRow key={index}>
+                    <TableCell>{item.nama}</TableCell>
+                    <TableCell className="text-right">{item.bayar}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>     
+        </div>
+      )}
+      <Footer />
     </div>
   );
 }
