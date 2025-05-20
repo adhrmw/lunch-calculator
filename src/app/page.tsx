@@ -26,7 +26,7 @@ export default function Home() {
   const [pengiriman, setPengiriman] = useState("");
   const [admin, setAdmin] = useState("");
   const [diskon, setDiskon] = useState("");
-  const [hasil, setHasil] = useState<any[]>([]);
+  const [hasil, setHasil] = useState<{ nama: string; bayar: string }[]>([]);
   const [tanggalPesan, setTanggalPesan] = useState<Date>(new Date());
   const hasilRef = useRef<HTMLDivElement>(null);
 
