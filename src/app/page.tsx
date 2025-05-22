@@ -26,6 +26,7 @@ export default function Home() {
   const [pengiriman, setPengiriman] = useState("");
   const [admin, setAdmin] = useState("");
   const [diskon, setDiskon] = useState("");
+  const [warung, setWarung] = useState("");
   const [hasil, setHasil] = useState<{ nama: string; bayar: string }[]>([]);
   const [tanggalPesan, setTanggalPesan] = useState<Date>(new Date());
   const hasilRef = useRef<HTMLDivElement>(null);
@@ -154,6 +155,7 @@ export default function Home() {
     setDiskon("");
     setHasil([]);
     setNamaPembayar("");
+    setWarung("");
     setTanggalPesan(new Date()); // Reset to current date
   };
 
@@ -174,15 +176,27 @@ export default function Home() {
 
   return (
     <div className="max-w-3xl mx-auto p-6 space-y-8">
-      <h1 className="text-3xl font-bold text-center">PEMBAGIAN BIAYA MAKAN</h1>
+      <h1 className="text-3xl font-bold text-center">MEAL COST SHARING</h1>
       <div className="border rounded-xl p-4 space-y-4 shadow-sm">
-          <h2 className="text-lg font-semibold uppercase">pembayar pesanan</h2>
-          <Input
-            placeholder="Nama yang membayar"
-            value={namaPembayar}
-            onChange={(e) => setNamaPembayar(e.target.value)}
-          />
-          <div className="mt-4">
+          <h2 className="text-lg font-semibold uppercase">Order Detail</h2>
+          <div className="space-y-2">
+            <p className="text-sm text-muted-foreground">Restaurant Name</p>
+            <Input
+              placeholder="ex. Mie Gacoan"
+              value={warung}
+              onChange={(e) => setWarung(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <p className="text-sm text-muted-foreground">Order Payer</p>
+            <Input
+              placeholder="ex. Ananda"
+              value={namaPembayar}
+              onChange={(e) => setNamaPembayar(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <p className="text-sm text-muted-foreground">Order Date</p>
             <Popover>
               <PopoverTrigger asChild>
                 <Button
@@ -211,10 +225,10 @@ export default function Home() {
       {/* Form Input Orang */}
       <div className="border rounded-xl p-4 space-y-4 shadow-sm">
         
-        <h2 className="text-lg font-semibold uppercase">input pemesan</h2>
+        <h2 className="text-lg font-semibold uppercase">Order Input</h2>
         <div className="flex flex-col sm:flex-row gap-2">
           <Input
-            placeholder="Nama"
+            placeholder="ex. Andreas"
             value={nama}
             onChange={(e) => setNama(e.target.value)}
             onKeyDown={(e) => {
@@ -225,7 +239,7 @@ export default function Home() {
             }}
           />
           <Input
-            placeholder="Harga (mis. 15000)"
+            placeholder="ex. 10000"
             value={formatHargaInput(harga)}
             onChange={handleHargaChange}
             onKeyDown={(e) => {
@@ -236,21 +250,21 @@ export default function Home() {
             }}
           />
           <Button onClick={tambahOrang}>
-            {editIndex !== null ? "Simpan" : "Tambah"}
+            {editIndex !== null ? "Simpan" : "Add"}
           </Button>
         </div>
 
         {/* List of people in table format */}
         {dataOrang.length > 0 && (
           <div className="mt-4">
-            <h3 className="text-sm font-medium mb-2 uppercase">daftar pemesan</h3>
+            <h3 className="text-sm font-medium mb-2 uppercase">Order List</h3>
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>No</TableHead>
-                  <TableHead>Nama</TableHead>
-                  <TableHead className="text-right">Kontribusi</TableHead>
-                  <TableHead className="text-center">Aksi</TableHead>
+                  <TableHead>Name</TableHead>
+                  <TableHead className="text-right">Contribution</TableHead>
+                  <TableHead className="text-center">Action</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -287,29 +301,38 @@ export default function Home() {
 
       {/* Input Detail Biaya */}
       <div className="border rounded-xl p-4 space-y-4 shadow-sm">
-        <h2 className="text-lg font-semibold uppercase">detail biaya</h2>
+        <h2 className="text-lg font-semibold uppercase">Cost Details</h2>
         <div className="space-y-4">
           <div className="flex items-center justify-between bg-muted p-4 rounded-lg w-full">
-            <span className="text-sm font-medium uppercase">total pesanan</span>
+            <span className="text-sm font-medium uppercase">Total Order</span>
             <span className="text-lg font-semibold">{formatIDR(getTotalKontribusi())}</span>
           </div>
           
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="space-y-2">
+            <p className="text-sm text-muted-foreground">Delivery Fee</p>
             <Input
-              placeholder="Biaya Pengiriman"
+              placeholder="ex. 10000"
               value={formatHargaInput(pengiriman)}
               onChange={handlePengirimanChange}
             />
+          </div>
+          <div className="space-y-2">
+            <p className="text-sm text-muted-foreground">Admin Fee</p>
             <Input
-              placeholder="Biaya Admin"
+              placeholder="ex. 10000"
               value={formatHargaInput(admin)}
               onChange={handleAdminChange}
             />
+          </div>
+          <div className="space-y-2">
+            <p className="text-sm text-muted-foreground">Discount</p>
             <Input
-              placeholder="Diskon"
+              placeholder="ex. 10000"
               value={formatHargaInput(diskon)}
               onChange={handleDiskonChange}
             />
+          </div>
           </div>
         </div>
 
@@ -319,7 +342,7 @@ export default function Home() {
             className="flex-1" 
             onClick={hitungPembayaran}
           >
-            Hitung Pembayaran
+            Calculate
           </Button>
           <Button 
             variant="destructive" 
@@ -339,7 +362,7 @@ export default function Home() {
       {hasil.length > 0 && (
         <div ref={hasilRef} className="border rounded-xl p-4 shadow-sm">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold uppercase">hasil pembagian</h2>
+            <h2 className="text-lg font-semibold uppercase">Result</h2>
             <Button 
               variant="outline" 
               size="sm"
@@ -351,12 +374,13 @@ export default function Home() {
           </div>
           <div className="space-y-4">
           <div className="flex justify-between items-center text-sm mb-4">
-            <div>
-              {format(tanggalPesan, "PPP")}
+            <div className="space-y-1">
+              {warung && <div className="font-medium capitalize">{capitalize(warung)}</div>}
+              <div>{format(tanggalPesan, "PPP")}</div>
             </div>
             {namaPembayar && (
               <div className="font-regular">
-                Pembayaran ke <span className="font-semibold">{capitalize(namaPembayar)}</span>
+                Pay To <span className="font-semibold">{capitalize(namaPembayar)}</span>
               </div>
             )}
           </div>
@@ -364,29 +388,29 @@ export default function Home() {
               
               <div className="w-full space-y-1">
                 <div className="w-full flex justify-between text-sm">
-                  <span>Total Pesanan</span>
+                  <span>Total Order</span>
                   <span className="ml-auto">{formatIDR(getTotalKontribusi())}</span>
                 </div>
                 {pengiriman && (
                   <div className="w-full flex justify-between text-sm">
-                    <span>Biaya Pengiriman</span>
+                    <span>Delivery Fee</span>
                     <span className="ml-auto">{formatIDR(parseInt(pengiriman))}</span>
                   </div>
                 )}
                 {admin && (
                   <div className="w-full flex justify-between text-sm">
-                    <span>Biaya Admin</span>
+                    <span>Admin Fee</span>
                     <span className="ml-auto">{formatIDR(parseInt(admin))}</span>
                   </div>
                 )}
                 {diskon && (
                   <div className="w-full flex justify-between text-sm">
-                    <span>Diskon</span>
+                    <span>Discount</span>
                     <span className="ml-auto">{formatIDR(parseInt(diskon))}</span>
                   </div>
                 )}
                 <div className="w-full flex justify-between border-t mt-2 pt-2">
-                  <span className="font-medium uppercase">total akhir</span>
+                  <span className="font-medium uppercase">Grand Total</span>
                   <span className="ml-auto text-lg font-semibold">
                     {formatIDR(getTotalKontribusi() + parseInt(pengiriman || "0") + parseInt(admin || "0") - parseInt(diskon || "0"))}
                   </span>
@@ -397,8 +421,8 @@ export default function Home() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Nama</TableHead>
-                  <TableHead className="text-right">Harus Bayar</TableHead>
+                  <TableHead>Name</TableHead>
+                  <TableHead className="text-right">Total to Pay</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
