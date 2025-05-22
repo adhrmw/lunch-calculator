@@ -7,7 +7,7 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@
 import { toPng } from 'html-to-image';
 import { useRef } from 'react';
 import { format } from "date-fns";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, Pencil, Trash } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
@@ -29,6 +29,41 @@ export default function Home() {
   const [hasil, setHasil] = useState<{ nama: string; bayar: string }[]>([]);
   const [tanggalPesan, setTanggalPesan] = useState<Date>(new Date());
   const hasilRef = useRef<HTMLDivElement>(null);
+  const [editIndex, setEditIndex] = useState<number | null>(null);
+
+  const formatHargaInput = (value: string) => {
+    const numericValue = value.replace(/[^0-9]/g, "");
+    if (!numericValue) return "";
+    return "Rp. " + Number(numericValue).toLocaleString("id-ID");
+  };
+
+  const handleHargaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const inputValue = e.target.value;
+    // Remove non-digit characters (remove Rp, spaces, dots)
+    const cleanValue = inputValue.replace(/[^0-9]/g, "");
+    setHarga(cleanValue);
+  };
+
+  const handleAdminChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const inputValue = e.target.value;
+    // Remove non-digit characters (remove Rp, spaces, dots)
+    const cleanValue = inputValue.replace(/[^0-9]/g, "");
+    setAdmin(cleanValue);
+  };
+
+  const handlePengirimanChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const inputValue = e.target.value;
+    // Remove non-digit characters (remove Rp, spaces, dots)
+    const cleanValue = inputValue.replace(/[^0-9]/g, "");
+    setPengiriman(cleanValue);
+  };
+
+  const handleDiskonChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const inputValue = e.target.value;
+    // Remove non-digit characters (remove Rp, spaces, dots)
+    const cleanValue = inputValue.replace(/[^0-9]/g, "");
+    setDiskon(cleanValue);
+  };
 
   // Add this function near other utility functions
   const capitalize = (str: string) => {
@@ -41,9 +76,36 @@ export default function Home() {
     const kontribusi = parseInt(harga.replace(/\D/g, ""));
     if (isNaN(kontribusi)) return;
 
-    setDataOrang([...dataOrang, { nama: capitalize(nama), kontribusi }]);
+    const orangBaru = { nama: capitalize(nama), kontribusi };
+
+    if (editIndex !== null) {
+      const update = [...dataOrang];
+      update[editIndex] = orangBaru;
+      setDataOrang(update);
+      setEditIndex(null);
+    } else {
+      setDataOrang([...dataOrang, orangBaru]);
+    }
+
     setNama("");
     setHarga("");
+  };
+
+  const editOrang = (index: number) => {
+    const orang = dataOrang[index];
+    setNama(orang.nama);
+    setHarga(orang.kontribusi.toString());
+    setEditIndex(index);
+  };
+
+  const hapusOrang = (index: number) => {
+    const baru = dataOrang.filter((_, i) => i !== index);
+    setDataOrang(baru);
+    if (editIndex === index) {
+      setNama("");
+      setHarga("");
+      setEditIndex(null);
+    }
   };
 
   // In the results table, modify the name display
@@ -79,7 +141,7 @@ export default function Home() {
   };
 
   const formatIDR = (angka: number) => {
-    return `Rp${angka.toLocaleString("id-ID")}`;
+    return `Rp. ${angka.toLocaleString("id-ID")}`;
   };
 
   // Add reset function after other functions
@@ -155,13 +217,27 @@ export default function Home() {
             placeholder="Nama"
             value={nama}
             onChange={(e) => setNama(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                tambahOrang();
+              }
+            }}
           />
           <Input
             placeholder="Harga (mis. 15000)"
-            value={harga}
-            onChange={(e) => setHarga(e.target.value)}
+            value={formatHargaInput(harga)}
+            onChange={handleHargaChange}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                tambahOrang();
+              }
+            }}
           />
-          <Button onClick={tambahOrang}>Tambah</Button>
+          <Button onClick={tambahOrang}>
+            {editIndex !== null ? "Simpan" : "Tambah"}
+          </Button>
         </div>
 
         {/* List of people in table format */}
@@ -174,14 +250,33 @@ export default function Home() {
                   <TableHead>No</TableHead>
                   <TableHead>Nama</TableHead>
                   <TableHead className="text-right">Kontribusi</TableHead>
+                  <TableHead className="text-center">Aksi</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {dataOrang.map((orang, index) => (
                   <TableRow key={index}>
-                    <TableCell>{index + 1}</TableCell>
+                    <TableCell className="w-10">{index + 1}</TableCell>
                     <TableCell>{orang.nama}</TableCell>
                     <TableCell className="text-right">{formatIDR(orang.kontribusi)}</TableCell>
+                    <TableCell className="text-center w-32 space-x-2">
+                      <Button 
+                        variant="outline" 
+                        size="icon" 
+                        onClick={() => editOrang(index)}
+                        aria-label="Edit"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        variant="destructive" 
+                        size="icon" 
+                        onClick={() => hapusOrang(index)}
+                        aria-label="Hapus"
+                      >
+                        <Trash className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -202,18 +297,18 @@ export default function Home() {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <Input
               placeholder="Biaya Pengiriman"
-              value={pengiriman}
-              onChange={(e) => setPengiriman(e.target.value)}
+              value={formatHargaInput(pengiriman)}
+              onChange={handlePengirimanChange}
             />
             <Input
               placeholder="Biaya Admin"
-              value={admin}
-              onChange={(e) => setAdmin(e.target.value)}
+              value={formatHargaInput(admin)}
+              onChange={handleAdminChange}
             />
             <Input
               placeholder="Diskon"
-              value={diskon}
-              onChange={(e) => setDiskon(e.target.value)}
+              value={formatHargaInput(diskon)}
+              onChange={handleDiskonChange}
             />
           </div>
         </div>
@@ -232,6 +327,11 @@ export default function Home() {
           >
             Reset
           </Button>
+        </div>
+        <div>
+        {/* <Button onClick={sendTelegramMessage}>
+          Kirim ke Telegram
+        </Button> */}
         </div>
       </div>
 
