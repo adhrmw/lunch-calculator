@@ -5,13 +5,12 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { toPng } from 'html-to-image';
-import { useRef, useEffect } from 'react';
+import { useRef } from 'react';
 import { format } from "date-fns";
 import { CalendarIcon, Pencil, Trash } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { supabase } from "@/lib/supabase"; 
 import { Footer } from "@/components/footer";
 
 type Orang = {
@@ -172,38 +171,6 @@ export default function Home() {
     link.href = dataUrl;
     link.click();
   };
-
-  async function sendTelegramMessage() {
-    const { data: sessionData } = await supabase.auth.getSession();
-    const token = sessionData?.session?.access_token;
-
-    if (!token) {
-      console.warn("No session token found");
-      return;
-    }
-
-    const res = await fetch(
-      "https://your-project-id.supabase.co/functions/v1/sendTelegram",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          message: "Hello from button click!",
-        }),
-      }
-    );
-
-    if (!res.ok) {
-      console.error("Failed to send Telegram message", await res.text());
-    } else {
-      const data = await res.json();
-      console.log("Telegram sent:", data);
-    }
-  }
-
 
   return (
     <div className="max-w-3xl mx-auto p-6 space-y-8">
